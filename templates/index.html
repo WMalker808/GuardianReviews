@@ -98,6 +98,16 @@
     .stars { color: #e8a000; }
     .total-count { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
 
+    /* ── Date inputs (reviews toolbar) ── */
+    .toolbar input[type="date"] {
+      border: 1px solid var(--border); border-radius: 3px;
+      padding: 0.35rem 0.6rem; font-size: 0.9rem; color: var(--text);
+      background: var(--card-bg);
+    }
+    .toolbar input[type="date"]:focus {
+      outline: 2px solid var(--guardian-blue); border-color: var(--guardian-blue);
+    }
+
     /* ── Format bar ── */
     #formatBar { max-width: 1200px; margin: 0.75rem auto 0; padding: 0 1.5rem;
       display: flex; align-items: center; gap: 0.5rem; }
@@ -245,6 +255,14 @@
   </div>
 
   <div class="toolbar">
+    <label>Dates</label>
+    <input type="date" id="reviewFromDate">
+    <label>to</label>
+    <input type="date" id="reviewToDate">
+    <button class="pill-btn" id="clearDatesBtn" style="display:none">Clear</button>
+  </div>
+
+  <div class="toolbar">
     <label>Stars</label>
     <button class="pill-btn active" data-stars="">Any</button>
     <button class="pill-btn" data-stars="1"><span class="stars">★</span></button>
@@ -318,6 +336,8 @@
   let currentSection = 'film';
   let currentFormat  = 'albums';
   let selectedStars  = new Set();
+  let fromDate       = '';
+  let toDate         = '';
   let currentPage    = 1;
   let totalPages     = 1;
   let loading        = false;
@@ -340,6 +360,9 @@
   const analyticsContent  = document.getElementById('analyticsContent');
   const chartBackBtn  = document.getElementById('chartBackBtn');
   const chartTitle    = document.getElementById('chartTitle');
+  const reviewFromDate = document.getElementById('reviewFromDate');
+  const reviewToDate   = document.getElementById('reviewToDate');
+  const clearDatesBtn  = document.getElementById('clearDatesBtn');
   const anyBtn        = document.querySelector('.pill-btn[data-stars=""]');
 
   /* ───────── view switching ───────── */
@@ -430,6 +453,8 @@
     const params = new URLSearchParams({ section: currentSection, page: currentPage });
     if (selectedStars.size > 0) params.set('stars', [...selectedStars].join(','));
     if (MUSIC_SECTIONS.has(currentSection)) params.set('format', currentFormat);
+    if (fromDate) params.set('from_date', fromDate);
+    if (toDate)   params.set('to_date', toDate);
 
     try {
       const res  = await fetch(`/api/reviews?${params}`);
@@ -659,6 +684,19 @@
   });
 
   loadMoreBtn.addEventListener('click', () => { currentPage++; load(true); });
+
+  function updateClearBtn() {
+    clearDatesBtn.style.display = fromDate || toDate ? '' : 'none';
+  }
+
+  reviewFromDate.addEventListener('change', () => { fromDate = reviewFromDate.value; updateClearBtn(); load(); });
+  reviewToDate.addEventListener('change',   () => { toDate   = reviewToDate.value;   updateClearBtn(); load(); });
+  clearDatesBtn.addEventListener('click', () => {
+    fromDate = toDate = '';
+    reviewFromDate.value = reviewToDate.value = '';
+    updateClearBtn();
+    load();
+  });
 
   runBtn.addEventListener('click', runAnalytics);
   chartBackBtn.addEventListener('click', showAllChart);

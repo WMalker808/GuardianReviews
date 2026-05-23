@@ -55,7 +55,7 @@ def extract_release_info(body_html):
     return None
 
 
-def fetch_reviews(section_key, star_rating=None, page=1, music_format=None):
+def fetch_reviews(section_key, star_rating=None, page=1, music_format=None, from_date=None, to_date=None):
     section_config = dict(SECTIONS.get(section_key, SECTIONS["film"]))
     show_body = section_key in ("film", "tv")
 
@@ -77,6 +77,10 @@ def fetch_reviews(section_key, star_rating=None, page=1, music_format=None):
 
     if star_rating:
         params["star-rating"] = star_rating
+    if from_date:
+        params["from-date"] = from_date
+    if to_date:
+        params["to-date"] = to_date
 
     resp = requests.get(CAPI_BASE, params=params, timeout=10)
     resp.raise_for_status()
@@ -178,6 +182,8 @@ def api_reviews():
     stars_param = request.args.get("stars", "")
     music_format = request.args.get("format", "albums")
     page = int(request.args.get("page", 1))
+    from_date = request.args.get("from_date", "")
+    to_date = request.args.get("to_date", "")
 
     if section not in SECTIONS:
         return jsonify({"error": "Invalid section"}), 400
@@ -186,10 +192,10 @@ def api_reviews():
 
     try:
         if len(star_ratings) <= 1:
-            data = fetch_reviews(section, star_ratings[0] if star_ratings else None, page, music_format)
+            data = fetch_reviews(section, star_ratings[0] if star_ratings else None, page, music_format, from_date, to_date)
         else:
             with ThreadPoolExecutor() as executor:
-                futures = {executor.submit(fetch_reviews, section, sr, page, music_format): sr for sr in star_ratings}
+                futures = {executor.submit(fetch_reviews, section, sr, page, music_format, from_date, to_date): sr for sr in star_ratings}
                 responses = [f.result() for f in as_completed(futures)]
             data = merge_responses(responses)
     except requests.HTTPError as e:
