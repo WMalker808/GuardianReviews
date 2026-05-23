@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guardian Reviews</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --guardian-blue: #052962;
+      --guardian-dark: #041f4a;
+      --accent: #ffe500;
+      --text: #1a1a1a;
+      --muted: #767676;
+      --border: #dcdcdc;
+      --bg: #f6f6f6;
+      --card-bg: #fff;
+      --star1: #c70000;
+      --star2: #d9481a;
+      --star3: #e8a000;
+      --star4: #5fa500;
+      --star5: #00703c;
+    }
+
+    body {
+      font-family: "Guardian Text Sans Web", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header { background: var(--guardian-blue); color: #fff; padding: 0 1.5rem; }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1rem 0 0.75rem;
+    }
+    .logo { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.5px; line-height: 1; }
+    .logo span { color: var(--accent); }
+    .subtitle { font-size: 0.85rem; opacity: 0.75; margin-top: 0.2rem; }
+
+    /* ── Nav ── */
+    nav { background: var(--guardian-dark); border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 1.5rem;
+      display: flex; flex-wrap: wrap; align-items: stretch;
+    }
+    .tab {
+      background: none; border: none; color: rgba(255,255,255,0.7);
+      font-size: 0.95rem; font-weight: 600;
+      padding: 0.85rem 1.25rem; cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover { color: #fff; }
+    .tab.active { color: #fff; border-bottom-color: var(--accent); }
+
+    .nav-sep {
+      flex: 1;
+    }
+
+    .analytics-tab {
+      background: none; border: none; color: rgba(255,255,255,0.7);
+      font-size: 0.875rem; font-weight: 600;
+      padding: 0.85rem 1.25rem; cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .analytics-tab:hover { color: #fff; }
+    .analytics-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Shared control styles ── */
+    .toolbar {
+      max-width: 1200px; margin: 1.25rem auto 0;
+      padding: 0 1.5rem;
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    }
+    .toolbar label {
+      font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    .pill-btn {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 3px; padding: 0.35rem 0.75rem;
+      cursor: pointer; font-size: 0.9rem; color: var(--text);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .pill-btn:hover { border-color: var(--guardian-blue); }
+    .pill-btn.active {
+      background: var(--guardian-blue); border-color: var(--guardian-blue); color: #fff;
+    }
+
+    .stars { color: #e8a000; }
+    .total-count { margin-left: auto; font-size: 0.85rem; color: var(--muted); }
+
+    /* ── Format bar ── */
+    #formatBar { max-width: 1200px; margin: 0.75rem auto 0; padding: 0 1.5rem;
+      display: flex; align-items: center; gap: 0.5rem; }
+    #formatBar label { font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── Reviews grid ── */
+    main { max-width: 1200px; margin: 1.25rem auto 3rem; padding: 0 1.5rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 4px;
+      overflow: hidden; display: flex; flex-direction: column;
+      text-decoration: none; color: inherit; transition: box-shadow 0.15s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+    .card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: #e0e0e0; display: block; }
+    .card-img-placeholder {
+      width: 100%; aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+      display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 2rem;
+    }
+    .card-body { padding: 0.85rem 1rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+    .card-rating { font-size: 1.05rem; color: #e8a000; letter-spacing: 1px; }
+    .card-headline { font-size: 1rem; font-weight: 700; line-height: 1.35; color: var(--guardian-blue); }
+    .card-byline { font-size: 0.8rem; color: var(--muted); }
+    .card-trail {
+      font-size: 0.85rem; line-height: 1.5; color: #444; flex: 1;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-date { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+    .card-release {
+      font-size: 0.8rem; color: var(--guardian-blue); background: #e8f0fb;
+      border-left: 3px solid var(--guardian-blue); padding: 0.35rem 0.6rem;
+      margin-top: 0.4rem; border-radius: 0 2px 2px 0; line-height: 1.4;
+    }
+
+    .state { text-align: center; padding: 4rem 1rem; color: var(--muted); font-size: 1rem; }
+    .load-more-wrap { display: flex; justify-content: center; margin-top: 2rem; }
+    .load-more {
+      background: var(--guardian-blue); color: #fff; border: none; border-radius: 3px;
+      padding: 0.65rem 2rem; font-size: 0.95rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .load-more:hover { background: #063a8c; }
+    .load-more:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Analytics view ── */
+    #analytics-view { max-width: 1200px; margin: 1.5rem auto 3rem; padding: 0 1.5rem; }
+
+    .analytics-controls {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+    }
+    .analytics-controls label {
+      font-size: 0.85rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .analytics-controls input[type="date"] {
+      border: 1px solid var(--border); border-radius: 3px;
+      padding: 0.35rem 0.6rem; font-size: 0.9rem; color: var(--text);
+      background: var(--bg);
+    }
+    .analytics-controls input[type="date"]:focus {
+      outline: 2px solid var(--guardian-blue); border-color: var(--guardian-blue);
+    }
+    .run-btn {
+      background: var(--guardian-blue); color: #fff; border: none; border-radius: 3px;
+      padding: 0.4rem 1.25rem; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; transition: background 0.15s; margin-left: auto;
+    }
+    .run-btn:hover { background: #063a8c; }
+    .run-btn:disabled { opacity: 0.5; cursor: default; }
+
+    .chart-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .chart-card h2 { font-size: 1rem; font-weight: 700; color: var(--guardian-blue); margin-bottom: 1.25rem; }
+    .chart-wrap { position: relative; height: 380px; }
+
+    .analytics-table-wrap { overflow-x: auto; }
+    .analytics-table {
+      width: 100%; border-collapse: collapse; font-size: 0.875rem;
+    }
+    .analytics-table th, .analytics-table td {
+      padding: 0.6rem 0.85rem; text-align: right; border-bottom: 1px solid var(--border);
+    }
+    .analytics-table th { font-weight: 700; color: var(--muted); text-transform: uppercase;
+      font-size: 0.75rem; letter-spacing: 0.05em; background: var(--bg); }
+    .analytics-table td:first-child, .analytics-table th:first-child {
+      text-align: left; font-weight: 600; color: var(--text);
+    }
+    .analytics-table tr:last-child td { border-bottom: none; }
+    .analytics-table .col-total { font-weight: 700; color: var(--guardian-blue); }
+    .star-dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 5px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="logo">The <span>Guardian</span></div>
+      <div class="subtitle">Reviews — filtered by star rating</div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <button class="tab active" data-section="film">Film</button>
+    <button class="tab" data-section="tv">TV &amp; Radio</button>
+    <button class="tab" data-section="rock-pop">Rock &amp; Pop</button>
+    <button class="tab" data-section="classical">Classical</button>
+    <button class="tab" data-section="jazz">Jazz</button>
+    <button class="tab" data-section="folk">Folk</button>
+    <button class="tab" data-section="electronic">Electronic</button>
+    <button class="tab" data-section="hiphop">Hip-hop &amp; R&amp;B</button>
+    <button class="tab" data-section="country">Country</button>
+    <button class="tab" data-section="world">World</button>
+    <button class="tab" data-section="theatre">Theatre</button>
+    <button class="tab" data-section="dance">Dance</button>
+    <button class="tab" data-section="opera">Opera</button>
+    <button class="tab" data-section="comedy">Comedy</button>
+    <button class="tab" data-section="books">Books</button>
+    <button class="tab" data-section="games">Games</button>
+    <button class="tab" data-section="art">Art &amp; Design</button>
+    <button class="tab" data-section="restaurants">Restaurants</button>
+    <div class="nav-sep"></div>
+    <button class="analytics-tab" id="analyticsTabBtn">&#9656; Analytics</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════ REVIEWS VIEW ═══════════════════════ -->
+<div id="reviews-view">
+  <div class="toolbar" id="formatBar" style="display:none">
+    <label>Type</label>
+    <button class="pill-btn active" data-format="albums">Albums</button>
+    <button class="pill-btn" data-format="live">Live</button>
+  </div>
+
+  <div class="toolbar">
+    <label>Stars</label>
+    <button class="pill-btn active" data-stars="">Any</button>
+    <button class="pill-btn" data-stars="1"><span class="stars">★</span></button>
+    <button class="pill-btn" data-stars="2"><span class="stars">★★</span></button>
+    <button class="pill-btn" data-stars="3"><span class="stars">★★★</span></button>
+    <button class="pill-btn" data-stars="4"><span class="stars">★★★★</span></button>
+    <button class="pill-btn" data-stars="5"><span class="stars">★★★★★</span></button>
+    <span class="total-count" id="totalCount"></span>
+  </div>
+
+  <main>
+    <div id="state" class="state">Loading…</div>
+    <div class="grid" id="grid"></div>
+    <div class="load-more-wrap" id="loadMoreWrap" style="display:none">
+      <button class="load-more" id="loadMoreBtn">Load more</button>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════ ANALYTICS VIEW ═══════════════════════ -->
+<div id="analytics-view" style="display:none">
+  <div class="analytics-controls">
+    <label for="fromDate">From</label>
+    <input type="date" id="fromDate">
+    <label for="toDate">To</label>
+    <input type="date" id="toDate">
+    <button class="run-btn" id="runBtn">Generate report</button>
+  </div>
+
+  <div id="analyticsState" class="state" style="display:none"></div>
+
+  <div id="analyticsContent" style="display:none">
+    <div class="chart-card">
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem;">
+        <h2 style="margin-bottom:0" id="chartTitle">Reviews by star rating &amp; category</h2>
+        <button class="pill-btn" id="chartBackBtn" style="display:none">&#8592; All categories</button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="analyticsChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h2>Review counts</h2>
+      <div class="analytics-table-wrap">
+        <table class="analytics-table" id="analyticsTable"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ───────── shared config ───────── */
+  const MUSIC_SECTIONS = new Set(['rock-pop','classical','jazz','folk','electronic','hiphop','country','world']);
+
+  const SECTION_LABELS = {
+    film: 'Film', tv: 'TV & Radio', 'rock-pop': 'Rock & Pop',
+    classical: 'Classical', jazz: 'Jazz', folk: 'Folk',
+    electronic: 'Electronic', hiphop: 'Hip-hop & R&B', country: 'Country', world: 'World',
+    theatre: 'Theatre', dance: 'Dance', opera: 'Opera', comedy: 'Comedy',
+    books: 'Books', games: 'Games', art: 'Art & Design', restaurants: 'Restaurants'
+  };
+
+  const SECTION_KEYS = Object.keys(SECTION_LABELS);
+
+  const STAR_COLORS = {
+    '1': '#c70000', '2': '#d9481a', '3': '#e8a000', '4': '#5fa500', '5': '#00703c'
+  };
+
+  /* ───────── reviews state ───────── */
+  let currentSection = 'film';
+  let currentFormat  = 'albums';
+  let selectedStars  = new Set();
+  let currentPage    = 1;
+  let totalPages     = 1;
+  let loading        = false;
+  let activeView     = 'reviews'; // 'reviews' | 'analytics'
+
+  /* ───────── DOM refs ───────── */
+  const grid          = document.getElementById('grid');
+  const stateEl       = document.getElementById('state');
+  const totalCountEl  = document.getElementById('totalCount');
+  const loadMoreWrap  = document.getElementById('loadMoreWrap');
+  const loadMoreBtn   = document.getElementById('loadMoreBtn');
+  const formatBar     = document.getElementById('formatBar');
+  const reviewsView   = document.getElementById('reviews-view');
+  const analyticsView = document.getElementById('analytics-view');
+  const analyticsTabBtn = document.getElementById('analyticsTabBtn');
+  const runBtn        = document.getElementById('runBtn');
+  const fromDateEl    = document.getElementById('fromDate');
+  const toDateEl      = document.getElementById('toDate');
+  const analyticsStateEl  = document.getElementById('analyticsState');
+  const analyticsContent  = document.getElementById('analyticsContent');
+  const chartBackBtn  = document.getElementById('chartBackBtn');
+  const chartTitle    = document.getElementById('chartTitle');
+  const anyBtn        = document.querySelector('.pill-btn[data-stars=""]');
+
+  /* ───────── view switching ───────── */
+  function showView(view) {
+    activeView = view;
+    reviewsView.style.display   = view === 'reviews'   ? '' : 'none';
+    analyticsView.style.display = view === 'analytics' ? '' : 'none';
+    analyticsTabBtn.classList.toggle('active', view === 'analytics');
+    document.querySelectorAll('.tab').forEach(t =>
+      t.classList.toggle('active', view === 'reviews' && t.dataset.section === currentSection)
+    );
+  }
+
+  /* ───────── reviews helpers ───────── */
+  function updateStarButtons() {
+    anyBtn.classList.toggle('active', selectedStars.size === 0);
+    document.querySelectorAll('.pill-btn[data-stars]').forEach(btn => {
+      if (btn.dataset.stars === '') return;
+      btn.classList.toggle('active', selectedStars.has(btn.dataset.stars));
+    });
+  }
+
+  function updateFormatBar() {
+    formatBar.style.display = MUSIC_SECTIONS.has(currentSection) ? 'flex' : 'none';
+    document.querySelectorAll('.pill-btn[data-format]').forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.format === currentFormat)
+    );
+  }
+
+  function renderStars(n) {
+    if (!n) return '';
+    const f = parseInt(n, 10);
+    return '★'.repeat(f) + '☆'.repeat(5 - f);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    return d.textContent || '';
+  }
+
+  function createCard(item) {
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = item.webUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    const imgHtml = item.thumbnail
+      ? `<img class="card-img" src="${item.thumbnail}" alt="" loading="lazy">`
+      : `<div class="card-img-placeholder">🎬</div>`;
+
+    const rating = item.starRating ? `<div class="card-rating">${renderStars(item.starRating)}</div>` : '';
+    const trail  = item.trailText  ? stripHtml(item.trailText) : '';
+
+    a.innerHTML = `
+      ${imgHtml}
+      <div class="card-body">
+        ${rating}
+        <div class="card-headline">${item.headline}</div>
+        ${item.byline    ? `<div class="card-byline">By ${item.byline}</div>` : ''}
+        ${trail          ? `<div class="card-trail">${trail}</div>` : ''}
+        <div class="card-date">${formatDate(item.webPublicationDate)}</div>
+        ${item.releaseInfo ? `<div class="card-release">${item.releaseInfo}</div>` : ''}
+      </div>`;
+    return a;
+  }
+
+  async function load(append = false) {
+    if (loading) return;
+    loading = true;
+    loadMoreBtn.disabled = true;
+
+    if (!append) {
+      grid.innerHTML = '';
+      stateEl.textContent = 'Loading…';
+      stateEl.style.display = 'block';
+      loadMoreWrap.style.display = 'none';
+      totalCountEl.textContent = '';
+      currentPage = 1;
+    }
+
+    const params = new URLSearchParams({ section: currentSection, page: currentPage });
+    if (selectedStars.size > 0) params.set('stars', [...selectedStars].join(','));
+    if (MUSIC_SECTIONS.has(currentSection)) params.set('format', currentFormat);
+
+    try {
+      const res  = await fetch(`/api/reviews?${params}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      stateEl.style.display = 'none';
+      totalPages = data.pages || 1;
+      totalCountEl.textContent = `${data.total.toLocaleString()} reviews`;
+
+      if (!data.results.length && !append) {
+        stateEl.textContent = 'No reviews found.';
+        stateEl.style.display = 'block';
+      } else {
+        data.results.forEach(item => grid.appendChild(createCard(item)));
+      }
+      loadMoreWrap.style.display = currentPage < totalPages ? 'flex' : 'none';
+    } catch (e) {
+      stateEl.textContent = `Error: ${e.message}`;
+      stateEl.style.display = 'block';
+    } finally {
+      loading = false;
+      loadMoreBtn.disabled = false;
+    }
+  }
+
+  /* ───────── analytics ───────── */
+  let chartInstance = null;
+  let analyticsData = null;
+
+  function setDefaultDates() {
+    const today = new Date();
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    toDateEl.value   = today.toISOString().slice(0, 10);
+    fromDateEl.value = oneYearAgo.toISOString().slice(0, 10);
+  }
+
+  function buildChart(data) {
+    const labels   = SECTION_KEYS.map(k => SECTION_LABELS[k]);
+    const datasets = [1,2,3,4,5].map(star => ({
+      label: '★'.repeat(star),
+      data: SECTION_KEYS.map(k => data[k]?.[String(star)] ?? 0),
+      backgroundColor: STAR_COLORS[String(star)],
+      borderRadius: 2,
+    }));
+
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(document.getElementById('analyticsChart'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        onClick: (event, elements) => {
+          if (!elements.length) return;
+          showIsolatedChart(SECTION_KEYS[elements[0].index]);
+        },
+        onHover: (event, elements) => {
+          event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+        },
+        plugins: {
+          legend: { position: 'top', labels: { font: { size: 13 }, usePointStyle: true } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+
+  function showAllChart() {
+    chartTitle.textContent = 'Reviews by star rating & category';
+    chartBackBtn.style.display = 'none';
+    buildChart(analyticsData);
+  }
+
+  function showIsolatedChart(sectionKey) {
+    const counts = analyticsData[sectionKey] || {};
+    const actualData = [1,2,3,4,5].map(s => counts[String(s)] ?? 0);
+    const total = actualData.reduce((a, b) => a + b, 0);
+
+    // Gaussian centered at 3★, σ=1, scaled to match total review count
+    const bellRaw = [1,2,3,4,5].map(x => Math.exp(-0.5 * Math.pow(x - 3, 2)));
+    const bellSum = bellRaw.reduce((a, b) => a + b, 0);
+    const bellData = bellRaw.map(v => total > 0 ? (v / bellSum) * total : v);
+
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(document.getElementById('analyticsChart'), {
+      type: 'bar',
+      data: {
+        labels: ['★', '★★', '★★★', '★★★★', '★★★★★'],
+        datasets: [
+          {
+            label: SECTION_LABELS[sectionKey],
+            data: actualData,
+            backgroundColor: [1,2,3,4,5].map(s => STAR_COLORS[String(s)]),
+            borderRadius: 2,
+            order: 1,
+          },
+          {
+            type: 'line',
+            label: 'Ideal distribution',
+            data: bellData,
+            borderColor: '#052962',
+            borderWidth: 2.5,
+            borderDash: [6, 3],
+            pointRadius: 4,
+            pointBackgroundColor: '#052962',
+            tension: 0.4,
+            fill: false,
+            order: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { font: { size: 13 }, usePointStyle: true } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+    chartTitle.textContent = `${SECTION_LABELS[sectionKey]} — star rating breakdown`;
+    chartBackBtn.style.display = '';
+  }
+
+  function buildTable(data) {
+    const table = document.getElementById('analyticsTable');
+    const starHeaders = [1,2,3,4,5].map(s =>
+      `<th><span class="star-dot" style="background:${STAR_COLORS[s]}"></span>${'★'.repeat(s)}</th>`
+    ).join('');
+
+    const rows = SECTION_KEYS.map(key => {
+      const counts  = data[key] || {};
+      const total   = [1,2,3,4,5].reduce((s,n) => s + (counts[String(n)] ?? 0), 0);
+      const cells   = [1,2,3,4,5].map(n => `<td>${(counts[String(n)] ?? 0).toLocaleString()}</td>`).join('');
+      return `<tr>
+        <td>${SECTION_LABELS[key]}</td>
+        ${cells}
+        <td class="col-total">${total.toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+
+    const allTotals = [1,2,3,4,5].map(n =>
+      SECTION_KEYS.reduce((s,k) => s + (data[k]?.[String(n)] ?? 0), 0)
+    );
+    const grandTotal = allTotals.reduce((a,b) => a+b, 0);
+    const totalRow = `<tr style="font-weight:700; background:var(--bg)">
+      <td>Total</td>
+      ${allTotals.map(t => `<td>${t.toLocaleString()}</td>`).join('')}
+      <td class="col-total">${grandTotal.toLocaleString()}</td>
+    </tr>`;
+
+    table.innerHTML = `
+      <thead><tr><th>Category</th>${starHeaders}<th>Total</th></tr></thead>
+      <tbody>${rows}${totalRow}</tbody>`;
+  }
+
+  async function runAnalytics() {
+    runBtn.disabled = true;
+    analyticsStateEl.textContent = 'Fetching data… (this may take a few seconds)';
+    analyticsStateEl.style.display = 'block';
+    analyticsContent.style.display = 'none';
+
+    const params = new URLSearchParams();
+    if (fromDateEl.value) params.set('from_date', fromDateEl.value);
+    if (toDateEl.value)   params.set('to_date',   toDateEl.value);
+
+    try {
+      const res  = await fetch(`/api/analytics?${params}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      analyticsStateEl.style.display = 'none';
+      analyticsContent.style.display = '';
+      analyticsData = data;
+      showAllChart();
+      buildTable(data);
+    } catch (e) {
+      analyticsStateEl.textContent = `Error: ${e.message}`;
+    } finally {
+      runBtn.disabled = false;
+    }
+  }
+
+  /* ───────── event listeners ───────── */
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      currentSection = tab.dataset.section;
+      currentFormat  = 'albums';
+      showView('reviews');
+      updateFormatBar();
+      load();
+    });
+  });
+
+  analyticsTabBtn.addEventListener('click', () => showView('analytics'));
+
+  document.querySelectorAll('.pill-btn[data-format]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFormat = btn.dataset.format;
+      updateFormatBar();
+      load();
+    });
+  });
+
+  anyBtn.addEventListener('click', () => {
+    selectedStars.clear();
+    updateStarButtons();
+    load();
+  });
+
+  document.querySelectorAll('.pill-btn[data-stars]').forEach(btn => {
+    if (btn.dataset.stars === '') return;
+    btn.addEventListener('click', () => {
+      const v = btn.dataset.stars;
+      selectedStars.has(v) ? selectedStars.delete(v) : selectedStars.add(v);
+      updateStarButtons();
+      load();
+    });
+  });
+
+  loadMoreBtn.addEventListener('click', () => { currentPage++; load(true); });
+
+  runBtn.addEventListener('click', runAnalytics);
+  chartBackBtn.addEventListener('click', showAllChart);
+
+  /* ───────── init ───────── */
+  setDefaultDates();
+  updateFormatBar();
+  load();
+</script>
+</body>
+</html>
